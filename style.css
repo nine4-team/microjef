@@ -609,7 +609,7 @@ button:disabled {
 #detail-actions {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1.5rem;
+  margin-top: 2.5rem;
 }
 
 .detail-action-btn {
