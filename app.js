@@ -1,6 +1,6 @@
 // ===== Firebase Setup =====
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp }
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc }
   from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL }
   from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js';
@@ -64,7 +64,14 @@ const detailAuthor = $('#detail-author');
 const detailImage = $('#detail-image');
 const detailImageContainer = $('#detail-image-container');
 const detailBody = $('#detail-body');
+const editEntryBtn = $('#edit-entry-btn');
+const deleteEntryBtn = $('#delete-entry-btn');
 const backToGrid = $('#back-to-grid');
+const formHeading = $('#form-heading');
+
+// Editing state
+let editingId = null;
+let editingImageURL = null;
 
 // ===== View Navigation =====
 function showView(viewId) {
@@ -212,7 +219,7 @@ function createTileElement(id, data) {
     </div>
   `;
 
-  tile.addEventListener('click', () => openDetail(data));
+  tile.addEventListener('click', () => openDetail(id, data));
   return tile;
 }
 
@@ -227,7 +234,7 @@ function escapeAttr(str) {
 }
 
 // ===== Detail View =====
-function openDetail(data) {
+function openDetail(id, data) {
   detailTitle.textContent = data.title;
   detailAuthor.textContent = `by ${data.author}`;
   detailBody.textContent = data.body;
@@ -239,8 +246,49 @@ function openDetail(data) {
     detailImageContainer.classList.add('hidden');
   }
 
+  editEntryBtn.onclick = () => startEdit(id, data);
+  deleteEntryBtn.onclick = () => confirmDelete(id);
+
   detailOverlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+}
+
+function startEdit(id, data) {
+  editingId = id;
+  editingImageURL = data.imageURL || null;
+
+  entryTitle.value = data.title;
+  entryBody.value = data.body;
+  entryAuthor.value = data.author;
+
+  if (data.imageURL) {
+    previewImg.src = data.imageURL;
+    imagePreview.classList.remove('hidden');
+  } else {
+    imagePreview.classList.add('hidden');
+  }
+
+  formHeading.textContent = 'Edit Entry';
+  submitBtn.textContent = 'Save Changes';
+
+  closeDetailView();
+  showView('#create');
+}
+
+async function confirmDelete(id) {
+  if (!confirm('Delete this entry? This cannot be undone.')) return;
+  deleteEntryBtn.disabled = true;
+  deleteEntryBtn.textContent = 'Deleting...';
+  try {
+    await deleteDoc(doc(db, 'entries', id));
+    closeDetailView();
+    loadEntries();
+  } catch (err) {
+    console.error('Error deleting entry:', err);
+    alert('Could not delete. Try again.');
+    deleteEntryBtn.disabled = false;
+    deleteEntryBtn.textContent = 'Delete';
+  }
 }
 
 closeDetail.addEventListener('click', closeDetailView);
@@ -288,41 +336,57 @@ removeImageBtn.addEventListener('click', () => {
 entryForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Posting...';
+  submitBtn.textContent = editingId ? 'Saving...' : 'Posting...';
 
   try {
-    let imageURL = null;
+    let imageURL = editingImageURL;
 
     if (selectedImageBlob) {
       imageURL = await uploadImage(selectedImageBlob);
+    } else if (editingId && imagePreview.classList.contains('hidden')) {
+      // User removed the image while editing
+      imageURL = null;
     }
 
-    await addDoc(collection(db, 'entries'), {
-      title: entryTitle.value.trim(),
-      body: entryBody.value.trim(),
-      author: entryAuthor.value.trim(),
-      imageURL: imageURL,
-      createdAt: serverTimestamp()
-    });
+    if (editingId) {
+      await updateDoc(doc(db, 'entries', editingId), {
+        title: entryTitle.value.trim(),
+        body: entryBody.value.trim(),
+        author: entryAuthor.value.trim(),
+        imageURL: imageURL,
+      });
+    } else {
+      await addDoc(collection(db, 'entries'), {
+        title: entryTitle.value.trim(),
+        body: entryBody.value.trim(),
+        author: entryAuthor.value.trim(),
+        imageURL: imageURL,
+        createdAt: serverTimestamp()
+      });
+    }
 
     resetForm();
     showView('#main');
     loadEntries();
   } catch (err) {
-    console.error('Error creating entry:', err);
+    console.error('Error saving entry:', err);
     alert('Something went wrong. Try again.');
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Post It';
+    submitBtn.textContent = editingId ? 'Save Changes' : 'Post It';
   }
 });
 
 function resetForm() {
   entryForm.reset();
   selectedImageBlob = null;
+  editingId = null;
+  editingImageURL = null;
   imagePreview.classList.add('hidden');
   uploadProgress.classList.add('hidden');
   progressBar.style.width = '0%';
+  formHeading.textContent = 'New Entry';
+  submitBtn.textContent = 'Post It';
 }
 
 // ===== Image Upload =====

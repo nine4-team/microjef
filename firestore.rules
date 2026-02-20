@@ -1,10 +1,32 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /entries/{entry} {
+    match /entries/{entryId} {
       allow read: if true;
-      allow create: if true;
-      allow update, delete: if false;
+      allow create: if request.resource.data.keys().hasAll(['title', 'body', 'author', 'createdAt', 'imageURL'])
+                   && request.resource.data.title is string
+                   && request.resource.data.title.size() > 0
+                   && request.resource.data.title.size() < 200
+                   && request.resource.data.body is string
+                   && request.resource.data.body.size() > 0
+                   && request.resource.data.body.size() < 5000
+                   && request.resource.data.author is string
+                   && request.resource.data.author.size() > 0
+                   && request.resource.data.author.size() < 100;
+      allow update: if request.resource.data.keys().hasAll(['title', 'body', 'author', 'imageURL'])
+                   && request.resource.data.title is string
+                   && request.resource.data.title.size() > 0
+                   && request.resource.data.title.size() < 200
+                   && request.resource.data.body is string
+                   && request.resource.data.body.size() > 0
+                   && request.resource.data.body.size() < 5000
+                   && request.resource.data.author is string
+                   && request.resource.data.author.size() > 0
+                   && request.resource.data.author.size() < 100;
+      allow delete: if true;
+    }
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

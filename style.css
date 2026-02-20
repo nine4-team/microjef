@@ -605,6 +605,42 @@ button:disabled {
   word-break: break-word;
 }
 
+/* ===== Detail Actions ===== */
+#detail-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.detail-action-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.edit-btn {
+  background: var(--dust);
+  color: var(--midnight);
+}
+
+.edit-btn:hover {
+  background: var(--cactus);
+  color: var(--white-hot);
+}
+
+.delete-btn {
+  background: transparent;
+  color: var(--terracotta);
+  border: 2px solid var(--terracotta);
+}
+
+.delete-btn:hover {
+  background: var(--terracotta);
+  color: var(--white-hot);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
   #jef-img {

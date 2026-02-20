@@ -48,7 +48,7 @@
   <section id="create" class="view">
     <header class="form-header">
       <button id="back-to-grid" class="back-btn">&larr; Back</button>
-      <h2>New Entry</h2>
+      <h2 id="form-heading">New Entry</h2>
     </header>
     <form id="entry-form">
       <input type="text" id="entry-title" placeholder="Title" required>
@@ -79,6 +79,10 @@
         <img id="detail-image" alt="">
       </div>
       <div id="detail-body"></div>
+      <div id="detail-actions">
+        <button id="edit-entry-btn" class="detail-action-btn edit-btn">Edit</button>
+        <button id="delete-entry-btn" class="detail-action-btn delete-btn">Delete</button>
+      </div>
     </div>
   </div>
 
