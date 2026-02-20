@@ -4,6 +4,8 @@ import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimest
   from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL }
   from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js';
+import { initializeAppCheck, ReCaptchaV3Provider }
+  from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCN9_jqhNxErudZrPbeQJmAwzZPe54i6UM",
@@ -16,6 +18,10 @@ const firebaseConfig = {
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
+initializeAppCheck(firebaseApp, {
+  provider: new ReCaptchaV3Provider('6LdJgHIsAAAAAGJzxrS5dFACwpCQw52WiNYuRVnl'),
+  isTokenAutoRefreshEnabled: true
+});
 const db = getFirestore(firebaseApp);
 const storage = getStorage(firebaseApp);
 
@@ -99,14 +105,23 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Password check
+// SHA-256 of the password (generate with: crypto.subtle or https://emn178.github.io/online-tools/sha256.html)
+const PW_HASH = '02d32f28a881b6966e7fcfd58b6b261a0cc5f50fda0e43f637cb6f087bdf3ed8';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 passwordBtn.addEventListener('click', checkPassword);
 passwordInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') checkPassword();
 });
 
-function checkPassword() {
+async function checkPassword() {
   const pw = passwordInput.value.trim().toLowerCase();
-  if (pw === 'pussycat') {
+  const hash = await sha256(pw);
+  if (hash === PW_HASH) {
     passwordPrompt.classList.add('hidden');
     agePrompt.classList.remove('hidden');
   } else {
