@@ -59,7 +59,7 @@ h1, h2, h3, button, .fab {
     url('walk.jpg') center / cover no-repeat;
   color: var(--white-hot);
   text-align: center;
-  padding: 2rem;
+  padding: 2rem 2rem 14rem;
   position: relative;
   overflow: hidden;
   gap: 1.5rem;
@@ -101,10 +101,10 @@ h1, h2, h3, button, .fab {
 
 /* Gate center group — image + prompts */
 #gate-center {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
 }
 
 /* Jef Image */
@@ -150,6 +150,11 @@ h1, h2, h3, button, .fab {
 
 /* Password Prompt */
 #password-prompt, #age-prompt {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  translate: -50% 0;
+  margin-top: 1.5rem;
   z-index: 1;
   opacity: 0;
   transform: translateY(20px);
