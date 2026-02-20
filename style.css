@@ -652,6 +652,10 @@ button:disabled {
 
 /* ===== Responsive ===== */
 @media (max-width: 600px) {
+  #gate {
+    background-position: right center;
+  }
+
   #jef-img {
     width: 200px;
     height: 200px;
