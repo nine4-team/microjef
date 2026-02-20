@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>microjef.fun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== GATE (Landing / Password / Age Check) ===== -->
+  <section id="gate" class="view active">
+    <div id="gate-title">
+      <h1>Come take a walk together by yourself</h1>
+    </div>
+    <div id="jef-container">
+      <img id="jef-img" src="jef1.jpg" alt="Jef">
+    </div>
+    <div id="password-prompt" class="hidden">
+      <input type="password" id="password-input" placeholder="Password" autocomplete="off">
+      <button id="password-btn">Enter</button>
+      <p id="password-error" class="hidden">Nope. Try again.</p>
+    </div>
+    <div id="age-prompt" class="hidden">
+      <p>Are you at least 18 years old?</p>
+      <div class="age-buttons">
+        <button id="age-yes">Hell Yes</button>
+        <button id="age-no">No</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== MAIN GRID ===== -->
+  <section id="main" class="view">
+    <header class="main-header">
+      <h1>The 10' x 10' world is our oyster</h1>
+      <p class="subtitle">Open your throat and breathe the smokey sea</p>
+      <button id="logout-btn" class="logout-btn">Logout</button>
+    </header>
+    <div id="tiles-grid"></div>
+    <button id="create-btn" class="fab">+ New Entry</button>
+  </section>
+
+  <!-- ===== CREATE ENTRY ===== -->
+  <section id="create" class="view">
+    <header class="form-header">
+      <button id="back-to-grid" class="back-btn">&larr; Back</button>
+      <h2>New Entry</h2>
+    </header>
+    <form id="entry-form">
+      <input type="text" id="entry-title" placeholder="Title" required>
+      <textarea id="entry-body" placeholder="Say something..." rows="6" required></textarea>
+      <input type="text" id="entry-author" placeholder="Your name" required>
+      <label id="image-upload-label">
+        <span>Add a photo (optional)</span>
+        <input type="file" id="entry-image" accept="image/*">
+      </label>
+      <div id="image-preview" class="hidden">
+        <img id="preview-img" alt="Preview">
+        <button type="button" id="remove-image">&times; Remove</button>
+      </div>
+      <button type="submit" id="submit-btn">Post It</button>
+      <div id="upload-progress" class="hidden">
+        <div id="progress-bar"></div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== ENTRY DETAIL (Overlay) ===== -->
+  <div id="detail-overlay" class="overlay hidden">
+    <div id="detail-content">
+      <button id="close-detail" class="close-btn">&times;</button>
+      <h2 id="detail-title"></h2>
+      <p id="detail-author" class="meta"></p>
+      <div id="detail-image-container" class="hidden">
+        <img id="detail-image" alt="">
+      </div>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
