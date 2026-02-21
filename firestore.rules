@@ -3,7 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /entries/{entryId} {
       allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['title', 'body', 'author', 'createdAt', 'imageURL'])
+      allow create: if request.resource.data.keys().hasAll(['title', 'body', 'author', 'createdAt', 'imageURLs'])
                    && request.resource.data.title is string
                    && request.resource.data.title.size() > 0
                    && request.resource.data.title.size() < 200
@@ -12,8 +12,9 @@ service cloud.firestore {
                    && request.resource.data.body.size() < 5000
                    && request.resource.data.author is string
                    && request.resource.data.author.size() > 0
-                   && request.resource.data.author.size() < 100;
-      allow update: if request.resource.data.keys().hasAll(['title', 'body', 'author', 'imageURL'])
+                   && request.resource.data.author.size() < 100
+                   && request.resource.data.imageURLs is list;
+      allow update: if request.resource.data.keys().hasAll(['title', 'body', 'author', 'imageURLs'])
                    && request.resource.data.title is string
                    && request.resource.data.title.size() > 0
                    && request.resource.data.title.size() < 200
@@ -22,7 +23,8 @@ service cloud.firestore {
                    && request.resource.data.body.size() < 5000
                    && request.resource.data.author is string
                    && request.resource.data.author.size() > 0
-                   && request.resource.data.author.size() < 100;
+                   && request.resource.data.author.size() < 100
+                   && request.resource.data.imageURLs is list;
       allow delete: if true;
     }
     match /{document=**} {

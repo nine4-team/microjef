@@ -49,9 +49,7 @@ const entryTitle = $('#entry-title');
 const entryBody = $('#entry-body');
 const entryAuthor = $('#entry-author');
 const entryImage = $('#entry-image');
-const imagePreview = $('#image-preview');
-const previewImg = $('#preview-img');
-const removeImageBtn = $('#remove-image');
+const imagePreviewList = $('#image-preview-list');
 const submitBtn = $('#submit-btn');
 const uploadProgress = $('#upload-progress');
 const progressBar = $('#progress-bar');
@@ -61,8 +59,7 @@ const detailOverlay = $('#detail-overlay');
 const closeDetail = $('#close-detail');
 const detailTitle = $('#detail-title');
 const detailAuthor = $('#detail-author');
-const detailImage = $('#detail-image');
-const detailImageContainer = $('#detail-image-container');
+const detailImagesGrid = $('#detail-images-grid');
 const detailBody = $('#detail-body');
 const editEntryBtn = $('#edit-entry-btn');
 const deleteEntryBtn = $('#delete-entry-btn');
@@ -71,7 +68,7 @@ const formHeading = $('#form-heading');
 
 // Editing state
 let editingId = null;
-let editingImageURL = null;
+let editingImageURLs = [];
 
 // ===== View Navigation =====
 function showView(viewId) {
@@ -201,9 +198,13 @@ function createTileElement(id, data) {
   tile.className = 'tile';
   tile.dataset.id = id;
 
+  const firstURL = (data.imageURLs && data.imageURLs[0]) || data.imageURL || null;
+  const imageCount = data.imageURLs ? data.imageURLs.length : (data.imageURL ? 1 : 0);
+
   let imageHTML = '';
-  if (data.imageURL) {
-    imageHTML = `<img class="tile-image" src="${escapeAttr(data.imageURL)}" alt="" loading="lazy">`;
+  if (firstURL) {
+    const badge = imageCount > 1 ? `<span class="tile-image-count">\uD83D\uDCF7 ${imageCount}</span>` : '';
+    imageHTML = `<div class="tile-image-wrap"><img class="tile-image" src="${escapeAttr(firstURL)}" alt="" loading="lazy">${badge}</div>`;
   } else {
     imageHTML = '<div class="tile-no-image"></div>';
   }
@@ -239,12 +240,15 @@ function openDetail(id, data) {
   detailAuthor.textContent = `by ${data.author}`;
   detailBody.textContent = data.body;
 
-  if (data.imageURL) {
-    detailImage.src = data.imageURL;
-    detailImageContainer.classList.remove('hidden');
-  } else {
-    detailImageContainer.classList.add('hidden');
-  }
+  const urls = data.imageURLs || (data.imageURL ? [data.imageURL] : []);
+  detailImagesGrid.innerHTML = '';
+  urls.forEach(url => {
+    const img = document.createElement('img');
+    img.src = escapeAttr(url);
+    img.alt = '';
+    img.loading = 'lazy';
+    detailImagesGrid.appendChild(img);
+  });
 
   editEntryBtn.onclick = () => startEdit(id, data);
   deleteEntryBtn.onclick = () => confirmDelete(id);
@@ -255,18 +259,13 @@ function openDetail(id, data) {
 
 function startEdit(id, data) {
   editingId = id;
-  editingImageURL = data.imageURL || null;
+  editingImageURLs = data.imageURLs || (data.imageURL ? [data.imageURL] : []);
 
   entryTitle.value = data.title;
   entryBody.value = data.body;
   entryAuthor.value = data.author;
 
-  if (data.imageURL) {
-    previewImg.src = data.imageURL;
-    imagePreview.classList.remove('hidden');
-  } else {
-    imagePreview.classList.add('hidden');
-  }
+  renderPreviewList();
 
   formHeading.textContent = 'Edit Entry';
   submitBtn.textContent = 'Save Changes';
@@ -315,22 +314,43 @@ backToGrid.addEventListener('click', () => {
 });
 
 // Image preview
-let selectedImageBlob = null;
+let selectedImageBlobs = [];
 
 entryImage.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  selectedImageBlob = await resizeImage(file, 1200, 0.7);
-  previewImg.src = URL.createObjectURL(selectedImageBlob);
-  imagePreview.classList.remove('hidden');
-});
-
-removeImageBtn.addEventListener('click', () => {
-  selectedImageBlob = null;
+  for (const file of e.target.files) {
+    const blob = await resizeImage(file, 1200, 0.7);
+    selectedImageBlobs.push(blob);
+  }
   entryImage.value = '';
-  imagePreview.classList.add('hidden');
+  renderPreviewList();
 });
+
+function renderPreviewList() {
+  imagePreviewList.innerHTML = '';
+
+  editingImageURLs.forEach((url, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    item.innerHTML = `<img src="${escapeAttr(url)}" alt=""><button type="button" class="remove-preview-btn">&times;</button>`;
+    item.querySelector('.remove-preview-btn').addEventListener('click', () => {
+      editingImageURLs.splice(i, 1);
+      renderPreviewList();
+    });
+    imagePreviewList.appendChild(item);
+  });
+
+  selectedImageBlobs.forEach((blob, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item';
+    const objectURL = URL.createObjectURL(blob);
+    item.innerHTML = `<img src="${objectURL}" alt=""><button type="button" class="remove-preview-btn">&times;</button>`;
+    item.querySelector('.remove-preview-btn').addEventListener('click', () => {
+      selectedImageBlobs.splice(i, 1);
+      renderPreviewList();
+    });
+    imagePreviewList.appendChild(item);
+  });
+}
 
 // Form submit
 entryForm.addEventListener('submit', async (e) => {
@@ -339,28 +359,25 @@ entryForm.addEventListener('submit', async (e) => {
   submitBtn.textContent = editingId ? 'Saving...' : 'Posting...';
 
   try {
-    let imageURL = editingImageURL;
-
-    if (selectedImageBlob) {
-      imageURL = await uploadImage(selectedImageBlob);
-    } else if (editingId && imagePreview.classList.contains('hidden')) {
-      // User removed the image while editing
-      imageURL = null;
+    const newURLs = [];
+    for (const blob of selectedImageBlobs) {
+      newURLs.push(await uploadImage(blob));
     }
+    const imageURLs = [...editingImageURLs, ...newURLs];
 
     if (editingId) {
       await updateDoc(doc(db, 'entries', editingId), {
         title: entryTitle.value.trim(),
         body: entryBody.value.trim(),
         author: entryAuthor.value.trim(),
-        imageURL: imageURL,
+        imageURLs,
       });
     } else {
       await addDoc(collection(db, 'entries'), {
         title: entryTitle.value.trim(),
         body: entryBody.value.trim(),
         author: entryAuthor.value.trim(),
-        imageURL: imageURL,
+        imageURLs,
         createdAt: serverTimestamp()
       });
     }
@@ -379,10 +396,10 @@ entryForm.addEventListener('submit', async (e) => {
 
 function resetForm() {
   entryForm.reset();
-  selectedImageBlob = null;
+  selectedImageBlobs = [];
   editingId = null;
-  editingImageURL = null;
-  imagePreview.classList.add('hidden');
+  editingImageURLs = [];
+  imagePreviewList.innerHTML = '';
   uploadProgress.classList.add('hidden');
   progressBar.style.width = '0%';
   formHeading.textContent = 'New Entry';
