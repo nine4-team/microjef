@@ -264,6 +264,8 @@ function openDetail(id, data) {
 
   editEntryBtn.onclick = () => startEdit(id, data);
   deleteEntryBtn.onclick = () => confirmDelete(id);
+  deleteEntryBtn.textContent = 'Delete';
+  deleteEntryBtn.disabled = false;
 
   detailOverlay.classList.remove('hidden');
   document.body.style.overflow = 'hidden';

@@ -1,11 +1,11 @@
 # Issue: Firebase "Missing or insufficient permissions" on localhost writes
 
-**Status:** Active
+**Status:** Resolved
 **Opened:** 2026-02-21
-**Resolved:** _pending_
+**Resolved:** 2026-02-21
 
 ## Info
-- **Symptom:** Saving a new entry on localhost throws `FirebaseError: Missing or insufficient permissions` at `app.js:444` (inside the `addDoc`/`updateDoc` catch block).
+- **Symptom:** Saving a new entry throws `FirebaseError: Missing or insufficient permissions` at `app.js:444` on **both localhost and production** (`microjef.fun`).
 - **Affected area:** `app.js:411-450` (form submit handler), Firestore `entries` collection
 
 ### What we know
@@ -28,8 +28,26 @@
 ### H1: App Check debug token is not registered in Firebase Console
 - **Rationale:** App Check enforcement is on. reCAPTCHA v3 cannot validate on localhost. The code sets `FIREBASE_APPCHECK_DEBUG_TOKEN = true` which should generate a UUID debug token in the console — but that token must be explicitly registered in Firebase Console. If unregistered, every Firestore write is rejected with a permissions error (App Check blocks before rules even run).
 - **Experiment:** Open DevTools console while on localhost. Look for a message like: `App Check debug token: <uuid>. You will need to allow this debug token in the Firebase console.` If that message appears and the UUID is not registered in Firebase Console → App Check → Apps → [App] → Manage debug tokens, this is the cause.
+- **Result:** User confirms debug token was previously registered. However, the previous session's fix involved clearing all site data — this would have deleted the stored debug UUID from IndexedDB, causing App Check to generate a new UUID on next load. The newly generated UUID would not be registered, causing the same failure.
+- **Verdict:** Inconclusive — token may have rotated after site data clear. Need to confirm whether the UUID currently in DevTools console matches the one registered in Firebase Console.
+
+### H1b: Site data clear (from previous session fix) caused a new debug UUID to be generated, invalidating the registered token
+- **Rationale:** App Check stores the debug UUID in IndexedDB. When site data was cleared to fix the production reCAPTCHA throttle issue, the UUID was wiped. App Check auto-generated a new one, but only the old UUID is registered in Firebase Console.
+- **Experiment:** Compare the UUID logged in DevTools console on localhost vs. the UUID(s) in Firebase Console → App Check → Manage debug tokens.
 - **Result:** _pending_
 - **Verdict:** _pending_
+
+### H3: Firestore rules in Firebase Console are different from local firestore.rules (never deployed or overwritten)
+- **Rationale:** Production and localhost both failing means the issue is not environment-specific. The local `firestore.rules` looks correct. But if the rules were never deployed via `firebase deploy --only firestore:rules`, Firebase is running whatever rules were set previously — possibly the default deny-all.
+- **Experiment:** Check the rules currently active in Firebase Console → Firestore → Rules tab. Compare to local `firestore.rules`. If they differ, the local rules were never deployed.
+- **Result:** _pending_
+- **Verdict:** _pending_
+
+### H4: Form allows empty body but Firestore rule requires body.size() > 0
+- **Rationale:** User confirmed the error occurs specifically when saving without a description. `firestore.rules:11` enforces `request.resource.data.body.size() > 0`. An empty body fails this check, and Firestore returns the generic "Missing or insufficient permissions" message. No client-side validation prevents the submit.
+- **Experiment:** Attempt to save with an empty body field — confirm it fails. Attempt with a non-empty body — confirm it succeeds.
+- **Result:** Confirmed by user — error occurs specifically when body is empty.
+- **Verdict:** Confirmed — root cause identified.
 
 ### H2: Firestore security rules have a validation bug causing create to fail
 - **Rationale:** The `create` rule references `title.size()`, `body.size()`, `author.size()` as shorthand — but the correct syntax in Firestore rules is `request.resource.data.title.size()`. Shorthand may work or may not depending on rule scope.
