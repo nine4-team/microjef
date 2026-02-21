@@ -84,6 +84,7 @@ const formHeading = $('#form-heading');
 // Editing state
 let editingId = null;
 let editingImageURLs = [];
+let editingAudioURLs = [];
 
 // Gallery state
 let galleryURLs = [];
@@ -262,6 +263,15 @@ function openDetail(id, data) {
     detailImagesGrid.appendChild(img);
   });
 
+  const audioURLs = data.audioURLs || [];
+  audioURLs.forEach((url) => {
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.src = url;
+    audio.className = 'detail-audio';
+    detailImagesGrid.appendChild(audio);
+  });
+
   editEntryBtn.onclick = () => startEdit(id, data);
   deleteEntryBtn.onclick = () => confirmDelete(id);
   deleteEntryBtn.textContent = 'Delete';
@@ -274,6 +284,7 @@ function openDetail(id, data) {
 function startEdit(id, data) {
   editingId = id;
   editingImageURLs = data.imageURLs || (data.imageURL ? [data.imageURL] : []);
+  editingAudioURLs = data.audioURLs || [];
 
   entryTitle.value = data.title;
   entryBody.value = data.body;
@@ -370,13 +381,18 @@ backToGrid.addEventListener('click', () => {
   showView('#main');
 });
 
-// Image preview
+// Image/audio preview
 let selectedImageBlobs = [];
+let selectedAudioBlobs = [];
 
 entryImage.addEventListener('change', async (e) => {
   for (const file of e.target.files) {
-    const blob = await resizeImage(file, 1200, 0.7);
-    selectedImageBlobs.push(blob);
+    if (file.type.startsWith('audio/')) {
+      selectedAudioBlobs.push(file);
+    } else {
+      const blob = await resizeImage(file, 1200, 0.7);
+      selectedImageBlobs.push(blob);
+    }
   }
   entryImage.value = '';
   renderPreviewList();
@@ -407,6 +423,29 @@ function renderPreviewList() {
     });
     imagePreviewList.appendChild(item);
   });
+
+  editingAudioURLs.forEach((url, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item preview-item--audio';
+    item.innerHTML = `<audio controls src="${escapeAttr(url)}"></audio><button type="button" class="remove-preview-btn">&times;</button>`;
+    item.querySelector('.remove-preview-btn').addEventListener('click', () => {
+      editingAudioURLs.splice(i, 1);
+      renderPreviewList();
+    });
+    imagePreviewList.appendChild(item);
+  });
+
+  selectedAudioBlobs.forEach((file, i) => {
+    const item = document.createElement('div');
+    item.className = 'preview-item preview-item--audio';
+    const objectURL = URL.createObjectURL(file);
+    item.innerHTML = `<audio controls src="${objectURL}"></audio><button type="button" class="remove-preview-btn">&times;</button>`;
+    item.querySelector('.remove-preview-btn').addEventListener('click', () => {
+      selectedAudioBlobs.splice(i, 1);
+      renderPreviewList();
+    });
+    imagePreviewList.appendChild(item);
+  });
 }
 
 // Form submit
@@ -416,11 +455,18 @@ entryForm.addEventListener('submit', async (e) => {
   submitBtn.textContent = editingId ? 'Saving...' : 'Posting...';
 
   try {
-    const newURLs = [];
+    const newImageURLs = [];
     for (const blob of selectedImageBlobs) {
-      newURLs.push(await uploadImage(blob));
+      newImageURLs.push(await uploadFile(blob, 'jpg'));
     }
-    const imageURLs = [...editingImageURLs, ...newURLs];
+    const imageURLs = [...editingImageURLs, ...newImageURLs];
+
+    const newAudioURLs = [];
+    for (const file of selectedAudioBlobs) {
+      const ext = file.name.split('.').pop() || 'audio';
+      newAudioURLs.push(await uploadFile(file, ext));
+    }
+    const audioURLs = [...editingAudioURLs, ...newAudioURLs];
 
     if (editingId) {
       await updateDoc(doc(db, 'entries', editingId), {
@@ -428,6 +474,7 @@ entryForm.addEventListener('submit', async (e) => {
         body: entryBody.value.trim(),
         author: entryAuthor.value.trim(),
         imageURLs,
+        audioURLs,
       });
     } else {
       await addDoc(collection(db, 'entries'), {
@@ -435,6 +482,7 @@ entryForm.addEventListener('submit', async (e) => {
         body: entryBody.value.trim(),
         author: entryAuthor.value.trim(),
         imageURLs,
+        audioURLs,
         createdAt: serverTimestamp()
       });
     }
@@ -454,8 +502,10 @@ entryForm.addEventListener('submit', async (e) => {
 function resetForm() {
   entryForm.reset();
   selectedImageBlobs = [];
+  selectedAudioBlobs = [];
   editingId = null;
   editingImageURLs = [];
+  editingAudioURLs = [];
   imagePreviewList.innerHTML = '';
   uploadProgress.classList.add('hidden');
   progressBar.style.width = '0%';
@@ -463,10 +513,10 @@ function resetForm() {
   submitBtn.textContent = 'Post It';
 }
 
-// ===== Image Upload =====
-function uploadImage(blob) {
+// ===== File Upload =====
+function uploadFile(blob, ext) {
   return new Promise((resolve, reject) => {
-    const filename = `entries/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+    const filename = `entries/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
     const storageRef = ref(storage, filename);
     const uploadTask = uploadBytesResumable(storageRef, blob);
 

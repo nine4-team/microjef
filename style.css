@@ -333,6 +333,8 @@ button:disabled {
   transition: transform 0.2s, box-shadow 0.2s;
   animation: tile-pop 0.4s ease-out forwards;
   opacity: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .tile:hover {
@@ -377,6 +379,9 @@ button:disabled {
 .tile-info {
   padding: 1rem;
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .tile-image-badge {
@@ -410,6 +415,7 @@ button:disabled {
   font-size: 0.85rem;
   color: var(--cactus);
   font-weight: 600;
+  margin-top: auto;
 }
 
 /* FAB */
