@@ -18,6 +18,12 @@ const firebaseConfig = {
 };
 
 const firebaseApp = initializeApp(firebaseConfig);
+
+// Use App Check debug mode on localhost
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
+
 initializeAppCheck(firebaseApp, {
   provider: new ReCaptchaV3Provider('6LdJgHIsAAAAAGJzxrS5dFACwpCQw52WiNYuRVnl'),
   isTokenAutoRefreshEnabled: true
@@ -61,6 +67,15 @@ const detailTitle = $('#detail-title');
 const detailAuthor = $('#detail-author');
 const detailImagesGrid = $('#detail-images-grid');
 const detailBody = $('#detail-body');
+
+// Gallery lightbox
+const galleryOverlay = $('#gallery-overlay');
+const galleryClose = $('#gallery-close');
+const galleryPrev = $('#gallery-prev');
+const galleryNext = $('#gallery-next');
+const galleryImgWrap = $('#gallery-img-wrap');
+const galleryImg = $('#gallery-img');
+const galleryCounter = $('#gallery-counter');
 const editEntryBtn = $('#edit-entry-btn');
 const deleteEntryBtn = $('#delete-entry-btn');
 const backToGrid = $('#back-to-grid');
@@ -69,6 +84,10 @@ const formHeading = $('#form-heading');
 // Editing state
 let editingId = null;
 let editingImageURLs = [];
+
+// Gallery state
+let galleryURLs = [];
+let galleryIndex = 0;
 
 // ===== View Navigation =====
 function showView(viewId) {
@@ -242,11 +261,12 @@ function openDetail(id, data) {
 
   const urls = data.imageURLs || (data.imageURL ? [data.imageURL] : []);
   detailImagesGrid.innerHTML = '';
-  urls.forEach(url => {
+  urls.forEach((url, i) => {
     const img = document.createElement('img');
-    img.src = escapeAttr(url);
+    img.src = url;
     img.alt = '';
     img.loading = 'lazy';
+    img.addEventListener('click', () => openGallery(urls, i));
     detailImagesGrid.appendChild(img);
   });
 
@@ -296,15 +316,58 @@ detailOverlay.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (!galleryOverlay.classList.contains('hidden')) {
+    if (e.key === 'Escape') { closeGallery(); return; }
+    if (e.key === 'ArrowLeft') { galleryIndex = (galleryIndex - 1 + galleryURLs.length) % galleryURLs.length; updateGalleryView(); return; }
+    if (e.key === 'ArrowRight') { galleryIndex = (galleryIndex + 1) % galleryURLs.length; updateGalleryView(); return; }
+    return;
+  }
   if (e.key === 'Escape' && !detailOverlay.classList.contains('hidden')) {
     closeDetailView();
   }
 });
 
 function closeDetailView() {
+  closeGallery();
   detailOverlay.classList.add('hidden');
   document.body.style.overflow = '';
 }
+
+// ===== Gallery Lightbox =====
+function openGallery(urls, index) {
+  galleryURLs = urls;
+  galleryIndex = index;
+  updateGalleryView();
+  galleryOverlay.classList.remove('hidden');
+}
+
+function closeGallery() {
+  galleryOverlay.classList.add('hidden');
+}
+
+function updateGalleryView() {
+  galleryImg.src = galleryURLs[galleryIndex];
+  const multi = galleryURLs.length > 1;
+  galleryCounter.textContent = multi ? `${galleryIndex + 1} / ${galleryURLs.length}` : '';
+  galleryPrev.classList.toggle('hidden', !multi);
+  galleryNext.classList.toggle('hidden', !multi);
+}
+
+galleryClose.addEventListener('click', closeGallery);
+galleryOverlay.addEventListener('click', (e) => {
+  if (e.target === galleryOverlay) closeGallery();
+});
+galleryImgWrap.addEventListener('click', (e) => {
+  if (e.target === galleryImgWrap) closeGallery();
+});
+galleryPrev.addEventListener('click', () => {
+  galleryIndex = (galleryIndex - 1 + galleryURLs.length) % galleryURLs.length;
+  updateGalleryView();
+});
+galleryNext.addEventListener('click', () => {
+  galleryIndex = (galleryIndex + 1) % galleryURLs.length;
+  updateGalleryView();
+});
 
 // ===== Create Entry =====
 createBtn.addEventListener('click', () => showView('#create'));
