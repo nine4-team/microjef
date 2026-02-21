@@ -217,25 +217,17 @@ function createTileElement(id, data) {
   tile.className = 'tile';
   tile.dataset.id = id;
 
-  const firstURL = (data.imageURLs && data.imageURLs[0]) || data.imageURL || null;
   const imageCount = data.imageURLs ? data.imageURLs.length : (data.imageURL ? 1 : 0);
-
-  let imageHTML = '';
-  if (firstURL) {
-    const badge = imageCount > 1 ? `<span class="tile-image-count">\uD83D\uDCF7 ${imageCount}</span>` : '';
-    imageHTML = `<div class="tile-image-wrap"><img class="tile-image" src="${escapeAttr(firstURL)}" alt="" loading="lazy">${badge}</div>`;
-  } else {
-    imageHTML = '<div class="tile-no-image"></div>';
-  }
-
   const snippet = data.body.length > 100 ? data.body.substring(0, 100) + '...' : data.body;
+  const badge = imageCount > 0 ? `<span class="tile-image-badge">\uD83D\uDCF7${imageCount > 1 ? ' ' + imageCount : ''}</span>` : '';
 
   tile.innerHTML = `
-    ${imageHTML}
+    <div class="tile-no-image"></div>
     <div class="tile-info">
       <div class="tile-title">${escapeHTML(data.title)}</div>
       <div class="tile-snippet">${escapeHTML(snippet)}</div>
       <div class="tile-author">by ${escapeHTML(data.author)}</div>
+      ${badge}
     </div>
   `;
 

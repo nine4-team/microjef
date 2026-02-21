@@ -376,6 +376,15 @@ button:disabled {
 
 .tile-info {
   padding: 1rem;
+  position: relative;
+}
+
+.tile-image-badge {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--dust);
 }
 
 .tile-title {
