@@ -353,7 +353,7 @@ button:disabled {
 
 .tile-no-image {
   height: 8px;
-  background: linear-gradient(90deg, var(--terracotta), var(--heat), var(--cactus));
+  background: var(--terracotta);
 }
 
 .tile-info {
